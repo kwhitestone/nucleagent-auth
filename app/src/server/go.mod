@@ -76,6 +76,4 @@ require (
 	modernc.org/sqlite v1.42.2 // indirect
 )
 
-replace (
-	whitestone.top/prism-fusion => ./prism-fusion/src/server
-)
+replace whitestone.top/prism-fusion => ../../../../prism-fusion/src/server
