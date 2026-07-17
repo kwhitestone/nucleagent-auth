@@ -20,7 +20,7 @@ go run main.go        # 启动（需要 MySQL）
 - auth provider 通过 `config.yaml` 的 `auth.provider` 切换（builtin / openid）
 - JWT secret 与 nucleagent-core 共享（core 本地验证，不远程调用 auth）
 - 用户表用框架自带的 User model，不定义业务 model
-- CORS：`cors.mode: allow-all`，允许微前端子应用跨端口访问
+- CORS：`cors.mode: strict-whitelist`，通过环境变量配置允许的前端来源（WEB_FRONTEND_URL + AUTH_FRONTEND_URL），支持分布式部署
 
 ## Addons
 
