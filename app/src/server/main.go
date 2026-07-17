@@ -1,14 +1,14 @@
 package main
 
 import (
-	"nucleagent_auth/core"
-	"nucleagent_auth/global"
-	"nucleagent_auth/initialize"
+	"whitestone.top/prism-fusion/core"
+	"whitestone.top/prism-fusion/global"
+	"whitestone.top/prism-fusion/initialize"
 
 	"go.uber.org/zap"
 
 	_ "whitestone.top/prism-fusion/addons"
-	_ "nucleagent_auth/addons"
+	_ "nucleagent-auth/addons"
 )
 
 func main() {
