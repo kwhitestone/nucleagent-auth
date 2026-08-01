@@ -103,51 +103,5 @@ async function handleSubmit(): Promise<void> {
 </template>
 
 <style scoped>
-.auth-page {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 100vh;
-  padding: 24px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-}
-
-.auth-card {
-  width: 100%;
-  max-width: 400px;
-  padding: 32px;
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
-}
-
-.auth-card__header {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: 8px;
-}
-
-.auth-card__title {
-  margin: 0;
-  font-size: 24px;
-  font-weight: 600;
-}
-
-.auth-card__subtitle {
-  margin: 4px 0 24px;
-  color: #6b7280;
-  font-size: 14px;
-}
-
-.auth-card__submit {
-  width: 100%;
-  margin-top: 8px;
-}
-
-.auth-card__footer {
-  margin: 20px 0 0;
-  text-align: center;
-  font-size: 14px;
-  color: #6b7280;
-}
+/* auth 页样式复用全局 .auth-page / .auth-card（见 styles/global.css）*/
 </style>
