@@ -1,9 +1,16 @@
-import { createRouter, createWebHistory, type RouteRecordRaw } from "vue-router";
+import {
+  createRouter,
+  createWebHistory,
+  createWebHashHistory,
+  type RouteRecordRaw,
+} from "vue-router";
 import { useUserStore } from "@/store/user";
 
 // micro-app 子应用环境探测：被壳应用加载时 window.__MICRO_APP_ENVIRONMENT__ 为 true。
-// 子应用路由 base 需对齐壳应用分配的路径（/auth），独立运行时用根路径。
-const isMicroApp = (globalThis as Record<string, unknown>).__MICRO_APP_ENVIRONMENT__ === true;
+// 在 micro-app disableSandbox + inline 模式下，子应用与壳共享 window.history，
+// 如果用 createWebHistory 会劫持壳的 URL 路由。改用 hash 路由隔离。
+const isMicroApp =
+  (globalThis as Record<string, unknown>).__MICRO_APP_ENVIRONMENT__ === true;
 const routerBase = isMicroApp ? "/auth" : "/";
 
 const routes: RouteRecordRaw[] = [
@@ -32,7 +39,7 @@ const routes: RouteRecordRaw[] = [
 ];
 
 const router = createRouter({
-  history: createWebHistory(routerBase),
+  history: isMicroApp ? createWebHashHistory(routerBase) : createWebHistory(routerBase),
   routes,
 });
 

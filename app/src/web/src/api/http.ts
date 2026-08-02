@@ -46,7 +46,11 @@ http.interceptors.request.use((config: InternalAxiosRequestConfig) => {
 
 function redirectToLogin(): void {
   clearTokens();
-  // Avoid clobbering an in-progress login/register navigation.
+  // 在 micro-app 子应用模式下，不做 window.location 硬跳转（会劫持整个壳的 URL）。
+  // 只清 token，让壳应用自行决定何时切到登录页。
+  const w = globalThis as Record<string, unknown>;
+  if (w.__MICRO_APP_ENVIRONMENT__) return;
+  // 独立运行时跳 /login。
   if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
     window.location.href = "/login";
   }
