@@ -1,16 +1,16 @@
 <script setup lang="ts">
+/**
+ * 账户首页 —— micro-app 模式下 auth 子应用的唯一视图。
+ *
+ * 去掉自带头部（chrome 已在壳），仅保留用户卡片 + API Key 面板。
+ * 已移除 Element Plus：el-tag/el-button/ElMessage 改为原生 + useToast。
+ */
 import { computed, onMounted, ref } from "vue";
-import { useRouter } from "vue-router";
-import { useI18n } from "vue-i18n";
-import { ElMessage } from "element-plus";
 import { useUserStore } from "@/store/user";
-import LanguageSwitcher from "@/components/LanguageSwitcher.vue";
+import { toast } from "@/composables/useToast";
 import ApiKeyPanel from "@/components/ApiKeyPanel.vue";
 
-const { t } = useI18n();
-const router = useRouter();
 const userStore = useUserStore();
-
 const loading = ref(false);
 
 const avatarLetter = computed(() => {
@@ -23,79 +23,45 @@ async function loadUser(): Promise<void> {
   try {
     await userStore.fetchUser();
   } catch {
-    // The http interceptor already handles 401 -> redirect to login.
-    // Any other failure is surfaced but does not block the page shell.
+    // 401 由 http 拦截器处理；其他失败不阻塞页面骨架。
   } finally {
     loading.value = false;
   }
 }
 
-async function handleLogout(): Promise<void> {
-  try {
-    userStore.logout();
-    ElMessage.success(t("home.logoutSuccess"));
-    router.push("/login");
-  } catch {
-    ElMessage.error(t("home.logoutFailed"));
-  }
+function handleLogout(): void {
+  userStore.logout();
+  toast.info("已登出");
 }
 
 onMounted(loadUser);
 </script>
 
 <template>
-  <div v-loading="loading" class="home">
-    <header class="home__header">
-      <div class="home__brand">
-        <span class="home__brand-mark">N</span>
-        <span class="home__title">{{ t("home.title") }}</span>
-      </div>
-      <div class="home__header-actions">
-        <LanguageSwitcher />
-        <el-button class="home__logout" @click="handleLogout">
-          {{ t("home.logout") }}
-        </el-button>
-      </div>
-    </header>
-
-    <main class="home__body">
-      <section class="home__card home__card--user">
-        <div class="home__avatar">{{ avatarLetter }}</div>
-        <div class="home__user-main">
-          <h2 class="home__user-name">{{ userStore.displayName || "-" }}</h2>
-          <p class="home__user-meta">@{{ userStore.user?.username || "-" }}</p>
-          <div v-if="userStore.roles.length" class="home__roles">
-            <el-tag
-              v-for="role in userStore.roles"
-              :key="role"
-              size="small"
-              class="home__role-tag"
-            >
-              {{ role }}
-            </el-tag>
+  <div class="account-view">
+    <main class="account-body">
+      <section class="account-card account-card--user">
+        <div class="account-avatar">{{ avatarLetter }}</div>
+        <div class="account-user-main">
+          <h2 class="account-user-name">{{ userStore.displayName || "-" }}</h2>
+          <p class="account-user-meta">@{{ userStore.user?.username || "-" }}</p>
+          <div v-if="userStore.roles.length" class="account-roles">
+            <span v-for="role in userStore.roles" :key="role" class="account-role-tag">{{ role }}</span>
           </div>
         </div>
+        <button class="account-logout" type="button" @click="handleLogout">登出</button>
       </section>
 
-      <section class="home__card">
-        <h2 class="home__card-title">{{ t("home.userInfoTitle") }}</h2>
-        <dl class="home__info">
-          <div class="home__info-row">
-            <dt>{{ t("common.nickname") }}</dt>
-            <dd>{{ userStore.displayName || "-" }}</dd>
-          </div>
-          <div class="home__info-row">
-            <dt>{{ t("common.username") }}</dt>
-            <dd>{{ userStore.user?.username || "-" }}</dd>
-          </div>
-          <div class="home__info-row">
-            <dt>{{ t("home.roleId") }}</dt>
-            <dd>{{ userStore.roleId ?? "-" }}</dd>
-          </div>
+      <section class="account-card">
+        <h2 class="account-card-title">用户信息</h2>
+        <dl class="account-info">
+          <div class="account-info-row"><dt>昵称</dt><dd>{{ userStore.displayName || "-" }}</dd></div>
+          <div class="account-info-row"><dt>用户名</dt><dd>{{ userStore.user?.username || "-" }}</dd></div>
+          <div class="account-info-row"><dt>角色 ID</dt><dd>{{ userStore.roleId ?? "-" }}</dd></div>
         </dl>
       </section>
 
-      <section class="home__card">
+      <section class="account-card">
         <ApiKeyPanel />
       </section>
     </main>
@@ -103,175 +69,64 @@ onMounted(loadUser);
 </template>
 
 <style scoped>
-.home {
-  position: relative;
-  min-height: 100vh;
-  background-color: var(--na-bg);
-}
+.account-view { padding: 32px 24px 64px; max-width: 880px; margin: 0 auto; }
 
-.home::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  background: var(--na-grad-mesh);
-  pointer-events: none;
-  z-index: 0;
-}
+.account-body { display: flex; flex-direction: column; gap: 20px; }
 
-.home__header {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 32px;
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--na-border);
-}
-
-.home__brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.home__brand-mark {
-  display: flex;
-  width: 32px;
-  height: 32px;
-  align-items: center;
-  justify-content: center;
-  border-radius: 8px;
-  background: var(--na-grad-brand);
-  color: #fff;
-  font-family: var(--na-font-display);
-  font-size: 18px;
-  box-shadow: var(--na-shadow-glow-teal);
-}
-
-.home__title {
-  font-family: var(--na-font-display);
-  font-size: 20px;
-  color: var(--na-text);
-}
-
-.home__header-actions {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.home__logout {
-  border: 1px solid var(--na-border);
-  background: #fff;
-  color: var(--na-text-secondary);
-  border-radius: var(--na-r-md);
-}
-
-.home__logout:hover {
-  border-color: var(--rose-400, #fb7185);
-  color: #e11d48;
-  background: #fff;
-}
-
-.home__body {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  max-width: 880px;
-  margin: 0 auto;
-  padding: 32px 24px 64px;
-}
-
-.home__card {
+.account-card {
   padding: 28px;
   background: rgba(255, 255, 255, 0.92);
   backdrop-filter: blur(16px);
-  border: 1px solid var(--na-border);
-  border-radius: var(--na-r-xl);
-  box-shadow: var(--na-shadow-md);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  box-shadow: var(--shadow-md);
 }
 
-.home__card--user {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-}
+.account-card--user { display: flex; align-items: center; gap: 20px; }
 
-.home__avatar {
-  display: flex;
-  width: 64px;
-  height: 64px;
-  flex-shrink: 0;
-  align-items: center;
-  justify-content: center;
+.account-avatar {
+  display: flex; width: 64px; height: 64px; flex-shrink: 0;
+  align-items: center; justify-content: center;
   border-radius: 18px;
-  background: var(--na-grad-teal-indigo);
-  color: #fff;
-  font-family: var(--na-font-display);
-  font-size: 30px;
-  box-shadow: var(--na-shadow-glow-teal);
+  background: var(--grad-teal-indigo);
+  color: #fff; font-family: var(--font-display); font-size: 30px;
+  box-shadow: var(--shadow-glow-teal);
 }
 
-.home__user-name {
-  margin: 0;
-  font-family: var(--na-font-display);
-  font-size: 24px;
-  font-weight: 400;
-  color: var(--na-text);
+.account-user-main { flex: 1; min-width: 0; }
+
+.account-user-name {
+  margin: 0; font-family: var(--font-display); font-size: 24px; font-weight: 400;
+  color: var(--text-primary);
 }
 
-.home__user-meta {
-  margin: 2px 0 0;
-  color: var(--na-text-tertiary);
-  font-size: 13px;
-  font-family: var(--na-font-mono);
+.account-user-meta { margin: 2px 0 0; color: var(--text-tertiary); font-size: 13px; font-family: var(--font-mono); }
+
+.account-roles { margin-top: 8px; display: flex; gap: 6px; flex-wrap: wrap; }
+
+.account-role-tag {
+  padding: 2px 10px; border-radius: var(--r-full);
+  background: var(--grad-brand-soft); color: var(--indigo-600);
+  font-size: 11px; font-weight: 600;
 }
 
-.home__roles {
-  margin-top: 8px;
-  display: flex;
-  gap: 6px;
+.account-logout {
+  padding: 8px 16px; border-radius: var(--r-md);
+  border: 1px solid var(--border); background: var(--bg-card);
+  color: var(--text-secondary); font-size: 13px; cursor: pointer;
+  transition: all 0.2s var(--ease);
 }
 
-.home__card-title {
-  margin: 0 0 18px;
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--na-text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+.account-logout:hover { border-color: var(--rose-400); color: var(--rose-500); }
+
+.account-card-title {
+  margin: 0 0 18px; font-size: 15px; font-weight: 600;
+  color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em;
 }
 
-.home__info {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  margin: 0;
-}
+.account-info { display: flex; flex-direction: column; gap: 14px; margin: 0; }
 
-.home__info-row {
-  display: flex;
-  align-items: center;
-}
-
-.home__info-row dt {
-  width: 120px;
-  margin: 0;
-  color: var(--na-text-tertiary);
-  font-size: 13px;
-}
-
-.home__info-row dd {
-  margin: 0;
-  font-size: 14px;
-  color: var(--na-text);
-}
-
-.home__role-tag {
-  margin-right: 8px;
-}
+.account-info-row { display: flex; align-items: center; }
+.account-info-row dt { width: 120px; margin: 0; color: var(--text-tertiary); font-size: 13px; }
+.account-info-row dd { margin: 0; font-size: 14px; color: var(--text-primary); }
 </style>

@@ -1,18 +1,18 @@
 <script setup lang="ts">
+/**
+ * API Key 面板 —— 已移除 Element Plus。
+ *
+ * el-table  → 原生 table（功能等价，样式用 Aurora token）
+ * el-dialog → 原生 modal（绝对定位 + 遮罩）
+ * ElMessage → useToast
+ * ElMessageBox.confirm → 原生 window.confirm
+ * 校验：name 必填，提交时检查。
+ */
 import { onMounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
-import {
-  ElMessage,
-  ElMessageBox,
-  type FormInstance,
-  type FormRules,
-} from "element-plus";
-import {
-  createApiKey,
-  deleteApiKey,
-  listApiKeys,
-} from "@/api/auth";
+import { createApiKey, deleteApiKey, listApiKeys } from "@/api/auth";
 import type { ApiKey, ApiKeyWithSecret } from "@/api/types";
+import { toast } from "@/composables/useToast";
 
 const { t } = useI18n();
 
@@ -21,11 +21,7 @@ const loading = ref(false);
 const createLoading = ref(false);
 
 const createDialogVisible = ref(false);
-const createFormRef = ref<FormInstance>();
 const createForm = ref({ name: "" });
-const createRules: FormRules<{ name: string }> = {
-  name: [{ required: true, message: t("apiKey.createPlaceholder"), trigger: "blur" }],
-};
 
 const plaintextDialogVisible = ref(false);
 const createdKey = ref<ApiKeyWithSecret | null>(null);
@@ -35,8 +31,7 @@ async function loadKeys(): Promise<void> {
   try {
     keys.value = await listApiKeys();
   } catch (error) {
-    const message = error instanceof Error ? error.message : t("common.networkError");
-    ElMessage.error(message);
+    toast.error(error instanceof Error ? error.message : t("common.networkError"));
   } finally {
     loading.value = false;
   }
@@ -48,43 +43,34 @@ function openCreateDialog(): void {
 }
 
 async function handleCreate(): Promise<void> {
-  const valid = await createFormRef.value?.validate().catch(() => false);
-  if (!valid) return;
-
+  if (!createForm.value.name.trim()) {
+    toast.warning(t("apiKey.createPlaceholder"));
+    return;
+  }
   createLoading.value = true;
   try {
     const created = await createApiKey({ name: createForm.value.name.trim() });
     createdKey.value = created;
     createDialogVisible.value = false;
     plaintextDialogVisible.value = true;
-    ElMessage.success(t("apiKey.createSuccess"));
+    toast.success(t("apiKey.createSuccess"));
     await loadKeys();
   } catch (error) {
-    const message = error instanceof Error ? error.message : t("apiKey.createFailed");
-    ElMessage.error(message);
+    toast.error(error instanceof Error ? error.message : t("apiKey.createFailed"));
   } finally {
     createLoading.value = false;
   }
 }
 
 async function handleDelete(key: ApiKey): Promise<void> {
-  try {
-    await ElMessageBox.confirm(t("apiKey.deleteConfirm"), t("apiKey.deleteConfirmTitle"), {
-      type: "warning",
-      confirmButtonText: t("common.confirm"),
-      cancelButtonText: t("common.cancel"),
-    });
-  } catch {
-    return; // user cancelled
-  }
-
+  // EP 的 ElMessageBox.confirm 体验更好，但为移除 EP 改用原生 confirm。
+  if (!window.confirm(t("apiKey.deleteConfirm"))) return;
   try {
     await deleteApiKey(key.id);
-    ElMessage.success(t("apiKey.deleteSuccess"));
+    toast.success(t("apiKey.deleteSuccess"));
     await loadKeys();
   } catch (error) {
-    const message = error instanceof Error ? error.message : t("apiKey.deleteFailed");
-    ElMessage.error(message);
+    toast.error(error instanceof Error ? error.message : t("apiKey.deleteFailed"));
   }
 }
 
@@ -92,9 +78,9 @@ async function copyPlaintext(): Promise<void> {
   if (!createdKey.value) return;
   try {
     await navigator.clipboard.writeText(createdKey.value.plaintext);
-    ElMessage.success(t("common.copied"));
+    toast.success(t("common.copied"));
   } catch {
-    ElMessage.warning(t("common.copy"));
+    toast.warning(t("common.copy"));
   }
 }
 
@@ -105,128 +91,147 @@ onMounted(loadKeys);
   <div class="api-key-panel">
     <div class="api-key-panel__header">
       <h2 class="api-key-panel__title">{{ t("home.apiKeysTitle") }}</h2>
-      <el-button type="primary" @click="openCreateDialog">
+      <button class="na-btn na-btn--primary" type="button" @click="openCreateDialog">
         {{ t("apiKey.create") }}
-      </el-button>
+      </button>
     </div>
 
-    <el-table v-loading="loading" :data="keys" border stripe>
-      <el-table-column :label="t('apiKey.name')" prop="name" min-width="160" />
-      <el-table-column :label="t('apiKey.prefix')" prop="prefix" min-width="140" />
-      <el-table-column :label="t('apiKey.enabled')" width="100">
-        <template #default="{ row }">
-          <el-tag :type="row.enable ? 'success' : 'info'" size="small">
-            {{ row.enable ? t("apiKey.enabledText") : t("apiKey.disabledText") }}
-          </el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column :label="t('apiKey.lastUsed')" min-width="160">
-        <template #default="{ row }">
-          {{ row.lastUsed ? row.lastUsed : t("apiKey.neverUsed") }}
-        </template>
-      </el-table-column>
-      <el-table-column :label="t('apiKey.createdAt')" prop="createdAt" min-width="160" />
-      <el-table-column :label="t('apiKey.actions')" width="100" fixed="right">
-        <template #default="{ row }">
-          <el-button type="danger" link @click="handleDelete(row as ApiKey)">
-            {{ t("common.delete") }}
-          </el-button>
-        </template>
-      </el-table-column>
-      <template #empty>
-        <span>{{ t("apiKey.empty") }}</span>
-      </template>
-    </el-table>
+    <table class="key-table">
+      <thead>
+        <tr>
+          <th>{{ t("apiKey.name") }}</th>
+          <th>{{ t("apiKey.prefix") }}</th>
+          <th>{{ t("apiKey.enabled") }}</th>
+          <th>{{ t("apiKey.createdAt") }}</th>
+          <th>{{ t("apiKey.actions") }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-if="loading"><td colspan="5" class="key-empty">{{ t("common.loading") }}</td></tr>
+        <tr v-else-if="!keys.length"><td colspan="5" class="key-empty">{{ t("apiKey.empty") }}</td></tr>
+        <tr v-for="k in keys" :key="k.id">
+          <td>{{ k.name }}</td>
+          <td class="key-mono">{{ k.prefix }}</td>
+          <td>
+            <span class="key-tag" :class="k.enable ? 'key-tag--on' : 'key-tag--off'">
+              {{ k.enable ? t("apiKey.enabledText") : t("apiKey.disabledText") }}
+            </span>
+          </td>
+          <td class="key-mono">{{ k.createdAt }}</td>
+          <td>
+            <button class="na-btn na-btn--danger" type="button" @click="handleDelete(k)">
+              {{ t("common.delete") }}
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
 
-    <!-- Create dialog -->
-    <el-dialog
-      v-model="createDialogVisible"
-      :title="t('apiKey.create')"
-      width="420px"
-    >
-      <el-form
-        ref="createFormRef"
-        :model="createForm"
-        :rules="createRules"
-        label-position="top"
-      >
-        <el-form-item :label="t('apiKey.name')" prop="name">
-          <el-input
-            v-model="createForm.name"
-            :placeholder="t('apiKey.createPlaceholder')"
-          />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="createDialogVisible = false">
-          {{ t("common.cancel") }}
-        </el-button>
-        <el-button type="primary" :loading="createLoading" @click="handleCreate">
-          {{ t("common.confirm") }}
-        </el-button>
-      </template>
-    </el-dialog>
-
-    <!-- Plaintext dialog (shown once) -->
-    <el-dialog
-      v-model="plaintextDialogVisible"
-      :title="t('apiKey.plaintextTitle')"
-      width="520px"
-      :close-on-click-modal="false"
-    >
-      <el-alert
-        type="warning"
-        :title="t('apiKey.plaintextTip')"
-        show-icon
-        :closable="false"
-      />
-      <div class="api-key-panel__plaintext">
-        <code>{{ createdKey?.plaintext }}</code>
-        <el-button link type="primary" @click="copyPlaintext">
-          {{ t("common.copy") }}
-        </el-button>
+    <!-- 创建对话框（原生 modal） -->
+    <div v-if="createDialogVisible" class="na-modal-overlay" @click.self="createDialogVisible = false">
+      <div class="na-modal">
+        <h3 class="na-modal__title">{{ t("apiKey.create") }}</h3>
+        <label class="na-field">
+          <span class="na-field__label">{{ t("apiKey.name") }}</span>
+          <input v-model="createForm.name" type="text" class="na-field__input" :placeholder="t('apiKey.createPlaceholder')" @keyup.enter="handleCreate" />
+        </label>
+        <div class="na-modal__actions">
+          <button class="na-btn" type="button" @click="createDialogVisible = false">{{ t("common.cancel") }}</button>
+          <button class="na-btn na-btn--primary" type="button" :disabled="createLoading" @click="handleCreate">{{ t("common.confirm") }}</button>
+        </div>
       </div>
-      <template #footer>
-        <el-button type="primary" @click="plaintextDialogVisible = false">
-          {{ t("common.close") }}
-        </el-button>
-      </template>
-    </el-dialog>
+    </div>
+
+    <!-- 明文展示对话框（仅创建后一次） -->
+    <div v-if="plaintextDialogVisible" class="na-modal-overlay">
+      <div class="na-modal">
+        <h3 class="na-modal__title">{{ t("apiKey.plaintextTitle") }}</h3>
+        <p class="na-alert">{{ t("apiKey.plaintextTip") }}</p>
+        <div class="api-key-panel__plaintext">
+          <code>{{ createdKey?.plaintext }}</code>
+          <button class="na-btn na-btn--link" type="button" @click="copyPlaintext">{{ t("common.copy") }}</button>
+        </div>
+        <div class="na-modal__actions">
+          <button class="na-btn na-btn--primary" type="button" @click="plaintextDialogVisible = false">{{ t("common.close") }}</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <style scoped>
-.api-key-panel {
-  width: 100%;
-}
+.api-key-panel { width: 100%; }
 
-.api-key-panel__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 16px;
-}
+.api-key-panel__header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.api-key-panel__title { margin: 0; font-size: 18px; font-weight: 600; color: var(--text-primary); }
 
-.api-key-panel__title {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
+.key-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.key-table th {
+  text-align: left; padding: 10px 12px; font-weight: 600;
+  color: var(--text-secondary); border-bottom: 1px solid var(--border);
+  background: var(--bg-subtle);
 }
+.key-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); color: var(--text-primary); }
+.key-table tr:hover td { background: var(--bg-hover); }
+.key-mono { font-family: var(--font-mono); font-size: 12px; }
+.key-empty { text-align: center; color: var(--text-tertiary); padding: 24px; }
+
+.key-tag {
+  padding: 2px 8px; border-radius: var(--r-full); font-size: 11px; font-weight: 600;
+}
+.key-tag--on { background: rgba(16, 185, 129, 0.15); color: var(--emerald-500); }
+.key-tag--off { background: var(--bg-subtle); color: var(--text-tertiary); }
 
 .api-key-panel__plaintext {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-top: 16px;
-  padding: 12px;
-  background: #f5f7fa;
-  border-radius: 6px;
+  display: flex; align-items: center; gap: 12px;
+  margin-top: 16px; padding: 12px;
+  background: var(--bg-subtle); border-radius: var(--r-md);
   word-break: break-all;
 }
+.api-key-panel__plaintext code { flex: 1; font-size: 13px; color: var(--text-primary); font-family: var(--font-mono); }
 
-.api-key-panel__plaintext code {
-  flex: 1;
-  font-size: 13px;
-  color: #1f2329;
+/* 原生按钮 / modal / field 复用样式 */
+.na-btn {
+  padding: 8px 16px; border-radius: var(--r-md);
+  border: 1px solid var(--border); background: var(--bg-card);
+  color: var(--text-primary); font-size: 13px; font-weight: 500; cursor: pointer;
+  transition: all 0.2s var(--ease);
+}
+.na-btn:hover { background: var(--bg-hover); transform: translateY(-1px); }
+.na-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.na-btn--primary {
+  background: var(--grad-teal-indigo); background-size: 200% 200%;
+  animation: gradient-flow 5s var(--ease) infinite;
+  border-color: transparent; color: white; box-shadow: var(--shadow-glow-teal);
+}
+.na-btn--danger { border-color: var(--rose-400); color: var(--rose-500); background: transparent; }
+.na-btn--link { border: none; background: transparent; color: var(--indigo-500); }
+
+.na-modal-overlay {
+  position: fixed; inset: 0; background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center;
+  z-index: 100;
+}
+.na-modal {
+  width: 420px; max-width: calc(100vw - 32px);
+  background: var(--bg-card); border-radius: var(--r-xl);
+  box-shadow: var(--shadow-xl); padding: 24px;
+}
+.na-modal__title { margin: 0 0 16px; font-size: 18px; font-weight: 600; color: var(--text-primary); }
+.na-modal__actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
+
+.na-field { display: flex; flex-direction: column; gap: 6px; }
+.na-field__label { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+.na-field__input {
+  width: 100%; padding: 10px 14px; border: 1.5px solid var(--border); border-radius: var(--r-md);
+  font-size: 14px; color: var(--text-primary); background: var(--bg-card);
+  outline: none; transition: all 0.2s var(--ease);
+}
+.na-field__input:focus { border-color: var(--teal-400); box-shadow: 0 0 0 4px rgba(20, 184, 166, 0.08); }
+
+.na-alert {
+  margin: 0; padding: 10px 14px; border-radius: var(--r-md);
+  background: rgba(245, 158, 11, 0.1); color: var(--amber-600);
+  font-size: 12.5px;
 }
 </style>

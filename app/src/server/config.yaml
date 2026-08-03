@@ -1,7 +1,7 @@
 # 系统配置
 system:
   env: 'local'
-  addr: 6670
+  addr: 26670
 
 # JWT签名
 jwt:

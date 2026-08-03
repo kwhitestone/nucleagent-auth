@@ -1,16 +1,15 @@
 import { createApp, type App as VueApp } from "vue";
 import { createPinia } from "pinia";
-import ElementPlus from "element-plus";
-import "element-plus/dist/index.css";
 
 import App from "./App.vue";
 import router from "./router";
 import i18n from "./i18n";
+// Aurora 设计 token 必须先于 global.css 引入（global.css 内的规则依赖这些变量）。
+// aurora.css 由 nucleagent-deploy/scripts/sync-design-tokens.sh 从设计稿生成，勿手改。
+import "./styles/aurora.css";
 import "./styles/global.css";
 
 // 子应用挂载点用唯一 ID（#auth-app），避免与壳的 #app 或其他子应用冲突。
-// index.html 里的 <div id="auth-app"> 对应（独立运行时），micro-app inline 模式下
-// 子应用 HTML 被注入 <micro-app-body>，该 div 也随之进入。
 const MOUNT_ID = "auth-app";
 
 let app: VueApp | null = null;
@@ -20,7 +19,7 @@ function mount() {
   app.use(createPinia());
   app.use(router);
   app.use(i18n);
-  app.use(ElementPlus);
+  // 移除 Element Plus：设计稿全自绘，EP 样式与 Aurora 冲突。提示改用 useToast。
   app.mount(`#${MOUNT_ID}`);
 }
 

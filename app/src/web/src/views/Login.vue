@@ -1,27 +1,25 @@
 <script setup lang="ts">
+/**
+ * 登录页 —— 独立运行模式（非 micro-app）的入口。
+ *
+ * 在主壳里登录由壳的 LoginModal 处理（壳直连 auth 后端），本页只在 auth 子应用
+ * 独立 dev 时使用。已移除 Element Plus：用原生表单 + useToast，校验改为简单的
+ * 必填检查（原 EP 规则只有 required）。
+ */
 import { reactive, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
-import { ElMessage, type FormInstance, type FormRules } from "element-plus";
 import { useUserStore } from "@/store/user";
-import LanguageSwitcher from "@/components/LanguageSwitcher.vue";
+import { toast } from "@/composables/useToast";
 
 const { t } = useI18n();
 const router = useRouter();
 const route = useRoute();
 const userStore = useUserStore();
 
-const formRef = ref<FormInstance>();
 const loading = ref(false);
-const form = reactive({
-  username: "",
-  password: "",
-});
-
-const rules: FormRules<typeof form> = {
-  username: [{ required: true, message: t("login.enterUsername"), trigger: "blur" }],
-  password: [{ required: true, message: t("login.enterPassword"), trigger: "blur" }],
-};
+const errorMsg = ref("");
+const form = reactive({ username: "", password: "" });
 
 function redirectTarget(): string {
   const redirect = route.query.redirect;
@@ -29,20 +27,19 @@ function redirectTarget(): string {
 }
 
 async function handleSubmit(): Promise<void> {
-  const valid = await formRef.value?.validate().catch(() => false);
-  if (!valid) return;
-
+  if (loading.value) return;
+  if (!form.username.trim() || !form.password) {
+    errorMsg.value = t("login.enterUsername");
+    return;
+  }
   loading.value = true;
+  errorMsg.value = "";
   try {
-    await userStore.login({
-      username: form.username.trim(),
-      password: form.password,
-    });
-    ElMessage.success(t("login.success"));
+    await userStore.login({ username: form.username.trim(), password: form.password });
+    toast.success(t("login.success"));
     router.push(redirectTarget());
   } catch (error) {
-    const message = error instanceof Error ? error.message : t("login.failed");
-    ElMessage.error(message);
+    errorMsg.value = error instanceof Error ? error.message : t("login.failed");
   } finally {
     loading.value = false;
   }
@@ -52,54 +49,66 @@ async function handleSubmit(): Promise<void> {
 <template>
   <div class="auth-page">
     <div class="auth-card">
-      <div class="auth-card__header">
-        <LanguageSwitcher />
-      </div>
       <h1 class="auth-card__title">{{ t("login.title") }}</h1>
       <p class="auth-card__subtitle">{{ t("login.subtitle") }}</p>
 
-      <el-form
-        ref="formRef"
-        :model="form"
-        :rules="rules"
-        label-position="top"
-        @submit.prevent="handleSubmit"
-      >
-        <el-form-item :label="t('common.username')" prop="username">
-          <el-input
+      <form class="auth-form" @submit.prevent="handleSubmit">
+        <label class="auth-field">
+          <span class="auth-field__label">{{ t("common.username") }}</span>
+          <input
             v-model="form.username"
+            type="text"
+            class="auth-field__input"
             :placeholder="t('login.usernamePlaceholder')"
             autocomplete="username"
           />
-        </el-form-item>
-        <el-form-item :label="t('common.password')" prop="password">
-          <el-input
+        </label>
+        <label class="auth-field">
+          <span class="auth-field__label">{{ t("common.password") }}</span>
+          <input
             v-model="form.password"
             type="password"
+            class="auth-field__input"
             :placeholder="t('login.passwordPlaceholder')"
-            show-password
             autocomplete="current-password"
             @keyup.enter="handleSubmit"
           />
-        </el-form-item>
-        <el-button
-          type="primary"
-          class="auth-card__submit"
-          :loading="loading"
-          @click="handleSubmit"
-        >
-          {{ loading ? t("login.submitting") : t("login.submit") }}
-        </el-button>
-      </el-form>
+        </label>
+
+        <p v-if="errorMsg" class="auth-error">{{ errorMsg }}</p>
+
+        <button type="submit" class="auth-card__submit" :disabled="loading">
+          {{ loading ? t("common.sending") : t("login.title") }}
+        </button>
+      </form>
 
       <p class="auth-card__footer">
-        {{ t("login.noAccount") }}
-        <router-link to="/register">{{ t("login.registerLink") }}</router-link>
+        {{ t("register.hasAccount") }}
+        <router-link to="/register">{{ t("register.loginLink") }}</router-link>
       </p>
     </div>
   </div>
 </template>
 
 <style scoped>
-/* auth 页样式复用全局 .auth-page / .auth-card（见 styles/global.css）*/
+.auth-form { display: flex; flex-direction: column; gap: 14px; }
+.auth-field { display: flex; flex-direction: column; gap: 6px; }
+.auth-field__label { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+.auth-field__input {
+  width: 100%; padding: 10px 14px;
+  border: 1.5px solid var(--border); border-radius: var(--r-md);
+  font-size: 14px; color: var(--text-primary); background: var(--bg-card);
+  outline: none; transition: all 0.2s var(--ease);
+}
+.auth-field__input:focus { border-color: var(--teal-400); box-shadow: 0 0 0 4px rgba(20, 184, 166, 0.08); }
+.auth-error { color: var(--rose-500); font-size: 12.5px; margin: 0; }
+.auth-card__submit {
+  margin-top: 4px; padding: 12px; border: none; border-radius: var(--r-md);
+  background: var(--grad-teal-indigo); background-size: 200% 200%;
+  animation: gradient-flow 5s var(--ease) infinite;
+  color: white; font-weight: 600; cursor: pointer;
+  box-shadow: var(--shadow-glow-teal); transition: all 0.2s var(--ease);
+}
+.auth-card__submit:hover:not(:disabled) { transform: translateY(-1px); box-shadow: var(--shadow-glow-indigo); }
+.auth-card__submit:disabled { opacity: 0.6; cursor: not-allowed; }
 </style>

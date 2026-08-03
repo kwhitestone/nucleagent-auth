@@ -7,7 +7,7 @@ import type { ApiEnvelope } from "./types";
  * Shared axios instance.
  *
  * - baseURL is empty: requests use relative `/api/...` URLs which the Vite dev
- *   server proxies to the prism-fusion backend on :6670. In production the
+ *   server proxies to the prism-fusion backend on :26670. In production the
  *   reverse proxy handles the same path.
  * - The request interceptor attaches the JWT from localStorage.
  * - The response interceptor unwraps the unified `{ code, message, data }`
