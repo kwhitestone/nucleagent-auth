@@ -5,7 +5,7 @@ import (
 
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
-	"whitestone.top/prism-fusion/global"
+	"github.com/kwhitestone/prism-fusion/global"
 )
 
 // setupTestDB 用内存 sqlite 初始化全局 DB 并迁移 APIKey 表。

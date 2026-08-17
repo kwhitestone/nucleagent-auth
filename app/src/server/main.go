@@ -1,13 +1,13 @@
 package main
 
 import (
-	"whitestone.top/prism-fusion/core"
-	"whitestone.top/prism-fusion/global"
-	"whitestone.top/prism-fusion/initialize"
+	"github.com/kwhitestone/prism-fusion/core"
+	"github.com/kwhitestone/prism-fusion/global"
+	"github.com/kwhitestone/prism-fusion/initialize"
 
 	"go.uber.org/zap"
 
-	_ "whitestone.top/prism-fusion/addons"
+	_ "github.com/kwhitestone/prism-fusion/addons"
 	_ "nucleagent-auth/addons"
 )
 

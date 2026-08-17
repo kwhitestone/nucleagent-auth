@@ -5,10 +5,10 @@ go 1.25
 require (
 	github.com/danielgtaylor/huma/v2 v2.34.1
 	github.com/gin-gonic/gin v1.11.0
+	github.com/kwhitestone/prism-fusion v0.0.0
 	go.uber.org/zap v1.26.0
 	gorm.io/driver/sqlite v1.6.0
 	gorm.io/gorm v1.31.1
-	whitestone.top/prism-fusion v0.0.0
 )
 
 require (
@@ -76,4 +76,4 @@ require (
 	modernc.org/sqlite v1.42.2 // indirect
 )
 
-replace whitestone.top/prism-fusion => ../../../../prism-fusion/src/server
+replace github.com/kwhitestone/prism-fusion => ../../../../prism-fusion/src/server

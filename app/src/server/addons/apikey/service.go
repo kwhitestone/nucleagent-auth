@@ -4,7 +4,7 @@ import (
 	"errors"
 	"time"
 
-	"whitestone.top/prism-fusion/global"
+	"github.com/kwhitestone/prism-fusion/global"
 
 	"gorm.io/gorm"
 )

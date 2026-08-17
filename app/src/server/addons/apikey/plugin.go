@@ -3,7 +3,7 @@ package apikey
 import (
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/gin-gonic/gin"
-	"whitestone.top/prism-fusion/plugin"
+	"github.com/kwhitestone/prism-fusion/plugin"
 )
 
 // APIKeyPlugin API Key 管理插件。
