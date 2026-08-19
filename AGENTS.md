@@ -2,6 +2,18 @@
 
 认证服务：JWT 签发/验证、用户注册/登录。基于 Prism Fusion 框架。
 
+
+## Commit Message Language (IRON RULE)
+
+**All commit messages MUST be written in English.** No exceptions.
+
+- Subjects and bodies: English only. No Chinese characters anywhere in the message.
+- Type prefixes follow Conventional Commits (`feat:`, `fix:`, `chore:`, `refactor:`, `docs:`, `style:`, `perf:`, `test:`).
+- Referencing code identifiers, paths, or domain terms is fine; prose must be English.
+
+Rationale: these repositories are open-sourced on GitHub; Chinese commit messages
+make history unreadable to international contributors and pollute git log tooling.
+
 ## 构建
 
 > 前置：首次构建需先在 repo 根目录执行 `git submodule update --init` 拉取 prism-fusion，再 `go work sync`。
